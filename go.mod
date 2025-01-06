@@ -5,6 +5,8 @@ go 1.23.0
 require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/spf13/viper v1.19.0
+	go.uber.org/zap v1.21.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (
