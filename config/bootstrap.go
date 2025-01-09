@@ -13,7 +13,10 @@ import (
 var configs embed.FS
 
 func init() {
-	env := os.Getenv("ENV")
+	env, ok := os.LookupEnv("ENV")
+	if !ok {
+		panic("请设置环境变量 ENV")
+	}
 	vp := viper.New()
 	// 根据环境变量 ENV 决定要读取的应用启动配置
 	configFileStream, err := configs.ReadFile("application." + env + ".yaml")

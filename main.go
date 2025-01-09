@@ -1,6 +1,7 @@
 package main
 
 import (
+	"my-mall/common/middleware"
 	"my-mall/config"
 	"net/http"
 
@@ -10,7 +11,7 @@ import (
 func main() {
 	g := gin.New()
 	// TODO: 后面会把应用日志统一收集到文件， 这里根据运行环境判断, 只在dev环境下才使用gin.Logger()输出信息到控制台
-	g.Use(gin.Logger(), gin.Recovery())
+	g.Use(middleware.StartTrace(), middleware.LogAccess(), middleware.GinPanicRecovery())
 	g.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "pong",
