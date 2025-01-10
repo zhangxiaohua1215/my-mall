@@ -1,6 +1,7 @@
 package main
 
 import (
+	"my-mall/common/logger"
 	"my-mall/common/middleware"
 	"my-mall/config"
 	"net/http"
@@ -11,7 +12,7 @@ import (
 func main() {
 	g := gin.New()
 	// TODO: 后面会把应用日志统一收集到文件， 这里根据运行环境判断, 只在dev环境下才使用gin.Logger()输出信息到控制台
-	g.Use(middleware.StartTrace(), middleware.LogAccess(), middleware.GinPanicRecovery())
+	g.Use(middleware.StartTrace(), middleware.RequestLog(), middleware.ResponseLog(), middleware.GinPanicRecovery())
 	g.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "pong",
@@ -25,6 +26,7 @@ func main() {
 			"max_life": database.MaxLifeTime,
 		})
 	})
+	logger.L().Info("server start")
 	g.Run(":8080") // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 
 }

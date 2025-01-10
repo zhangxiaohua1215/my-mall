@@ -2,10 +2,10 @@ package middleware
 
 import (
 	"bytes"
-	"github.com/gin-gonic/gin"
+	"encoding/json"
+	"io"
 	"my-mall/common/logger"
 	"my-mall/common/util"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -13,6 +13,8 @@ import (
 	"runtime/debug"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 // infrastructure 中存放项目运行需要的基础中间价
@@ -46,40 +48,32 @@ func (w bodyLogWriter) Write(b []byte) (int, error) {
 	return w.ResponseWriter.Write(b)
 }
 
-func LogAccess() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		//保存body
-		reqBody, _ := ioutil.ReadAll(c.Request.Body)
-		c.Request.Body = ioutil.NopCloser(bytes.NewReader(reqBody))
-		start := time.Now()
-		blw := &bodyLogWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
-		c.Writer = blw
 
-		accessLog(c, "access_start", time.Since(start), reqBody, nil)
-		defer func() {
-			accessLog(c, "access_end", time.Since(start), reqBody, blw.body.String())
-		}()
+// 请求日志中间件，记录请求方法，路径，请求参数，请求体
+func RequestLog() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		body, _ := io.ReadAll(c.Request.Body)
+		c.Request.Body = io.NopCloser(bytes.NewReader(body))
+		logger.Ctx(c).Infow("RequestLog",
+			"method", c.Request.Method,
+			"path", c.Request.URL.Path,
+			"query", c.Request.URL.RawQuery,
+			"body", string(body))
 		c.Next()
 	}
 }
 
-func accessLog(c *gin.Context, accessType string, dur time.Duration, body []byte, dataOut interface{}) {
-	req := c.Request
-	bodyStr := string(body)
-	query := req.URL.RawQuery
-	path := req.URL.Path
-	// TODO: 实现Token认证后再把访问日志里也加上token记录
-	// token := c.Request.Header.Get("token")
-	logger.Ctx(c).Infow("AccessLog",
-		"type", accessType,
-		"ip", c.ClientIP(),
-		//"token", token,
-		"method", req.Method,
-		"path", path,
-		"query", query,
-		"body", bodyStr,
-		"output", dataOut,
-		"time(ms)", int64(dur/time.Millisecond))
+// 响应日志中间件，记录响应体，响应时间
+func ResponseLog() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		blw := &bodyLogWriter{body: new(bytes.Buffer), ResponseWriter: c.Writer}
+		c.Writer = blw
+		c.Next()
+		logger.Ctx(c).Infow("ResponseLog",
+		"output", json.RawMessage(blw.body.Bytes()),
+		"dur", time.Since(start))
+	}
 }
 
 // GinPanicRecovery 自定义gin recover输出
