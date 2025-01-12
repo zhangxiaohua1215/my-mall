@@ -2,7 +2,7 @@ app:
   env: dev
   name: go-mall
   log:
-    path: "/tmp/applog/go-mall.log"
+    path: "./log/go-mall.log"
     max_size: 100 # 单个日志文件最大100M
     max_age: 60 # 备份文件最多保存60天
   pagination:

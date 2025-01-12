@@ -48,13 +48,12 @@ func (w bodyLogWriter) Write(b []byte) (int, error) {
 	return w.ResponseWriter.Write(b)
 }
 
-
 // 请求日志中间件，记录请求方法，路径，请求参数，请求体
 func RequestLog() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		body, _ := io.ReadAll(c.Request.Body)
 		c.Request.Body = io.NopCloser(bytes.NewReader(body))
-		logger.Ctx(c).Infow("RequestLog",
+		logger.Ctx(c).Infow("reqLog",
 			"method", c.Request.Method,
 			"path", c.Request.URL.Path,
 			"query", c.Request.URL.RawQuery,
@@ -63,16 +62,26 @@ func RequestLog() gin.HandlerFunc {
 	}
 }
 
-// 响应日志中间件，记录响应体，响应时间
+// 响应日志中间件，记录响应体，响应时间，状态码
 func ResponseLog() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		blw := &bodyLogWriter{body: new(bytes.Buffer), ResponseWriter: c.Writer}
 		c.Writer = blw
 		c.Next()
-		logger.Ctx(c).Infow("ResponseLog",
-		"output", json.RawMessage(blw.body.Bytes()),
-		"dur", time.Since(start))
+		code := c.Writer.Status()
+		if code != 200 {
+			logger.Ctx(c).Warnw("rspLog",
+				"code", code,
+				"output", json.RawMessage(blw.body.Bytes()),
+				"dur", time.Since(start))
+		} else {
+			logger.Ctx(c).Infow("rspLog",
+				"code", code,
+				"output", json.RawMessage(blw.body.Bytes()),
+				"dur", time.Since(start))
+		}
+
 	}
 }
 
